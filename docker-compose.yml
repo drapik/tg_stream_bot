@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  tg_stream_bot:
+    build: .
+    container_name: tg_stream_bot
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+    volumes:
+      - ./logs:/app/logs
+      - ./config.py:/app/config.py
+    working_dir: /app
+    networks:
+      - tg_stream_bot_network
+
+networks:
+  tg_stream_bot_network:
+    driver: bridge

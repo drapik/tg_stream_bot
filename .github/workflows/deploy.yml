@@ -1,0 +1,55 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Deploy to server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        port: ${{ secrets.SERVER_PORT }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        source: "."
+        target: "/tmp/litec_tools_bot_deploy"
+    
+    - name: Build and run on server
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        port: ${{ secrets.SERVER_PORT }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Остановка старых контейнеров если есть
+          cd /data/litec_tools_bot
+          if [ -f docker-compose.yml ]; then
+            docker compose down
+          fi
+          
+          # Копирование новых файлов
+          cp -r /tmp/litec_tools_bot_deploy/* /data/litec_tools_bot/
+          cd /data/litec_tools_bot
+          
+          # Создание .env файла с секретами
+          cat > .env << EOF
+          TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}
+          EOF
+          
+          # Запуск новой версии
+          docker compose up -d --build
+          
+          # Очистка временных файлов
+          rm -rf /tmp/litec_tools_bot_deploy
+          
+          # Проверка статуса
+          docker compose ps
