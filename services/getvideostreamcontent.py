@@ -148,13 +148,12 @@ class YouTubeDownloader(BaseVideoDownloader):
             return None
     
     async def download_video(self, url: str, max_size_mb: int = 50) -> Optional[str]:
-        """Скачать YouTube видео с оптимизированными стратегиями"""
-        # Оптимизированные стратегии для максимальной совместимости
+        """Скачать YouTube видео с реалистичными ожиданиями"""
+        # Простая но эффективная стратегия
         strategies = [
+            self._download_basic_with_latest_ytdlp,
             self._download_with_android_client,
-            self._download_with_cookies_from_browser, 
-            self._download_with_ios_client,
-            self._download_basic_fallback
+            self._download_minimal_fallback
         ]
         
         for i, strategy in enumerate(strategies, 1):
@@ -193,45 +192,79 @@ class YouTubeDownloader(BaseVideoDownloader):
     
     async def _download_with_cookies_from_browser(self, url: str, max_size_mb: int) -> Optional[str]:
         """Стратегия 2: Быстрое использование cookies из браузера"""
-        opts = self.base_opts.copy()
-        opts.update({
-            'format': f'best[height<=720][filesize<{max_size_mb}M]/best',
-            'cookiesfrombrowser': ('chrome',),  # Просто Chrome, без дополнительных параметров
-            'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': '*/*',
-                'Accept-Language': 'en-US,en;q=0.9',
-                'Origin': 'https://www.youtube.com',
-                'Referer': 'https://www.youtube.com/',
-            },
-        })
-        
-        def _download():
-            with yt_dlp.YoutubeDL(opts) as ydl:
-                ydl.download([url])
-                info = ydl.extract_info(url, download=False)
-                return ydl.prepare_filename(info)
-        
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, _download)
+        # Пробуем использовать cookies только если есть доступ
+        try:
+            opts = self.base_opts.copy()
+            opts.update({
+                'format': f'best[height<=720][filesize<{max_size_mb}M]/best',
+                'cookiesfrombrowser': ('chrome',),
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': '*/*',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Origin': 'https://www.youtube.com',
+                    'Referer': 'https://www.youtube.com/',
+                },
+            })
+            
+            def _download():
+                with yt_dlp.YoutubeDL(opts) as ydl:
+                    ydl.download([url])
+                    info = ydl.extract_info(url, download=False)
+                    return ydl.prepare_filename(info)
+            
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None, _download)
+            
+        except Exception as e:
+            # Если cookies недоступны, пробуем без них
+            logger.warning(f"Cookie access failed, trying without cookies: {e}")
+            opts = self.base_opts.copy()
+            opts.update({
+                'format': f'best[height<=720][filesize<{max_size_mb}M]/best',
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': '*/*',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Origin': 'https://www.youtube.com',
+                    'Referer': 'https://www.youtube.com/',
+                },
+            })
+            
+            def _download():
+                with yt_dlp.YoutubeDL(opts) as ydl:
+                    ydl.download([url])
+                    info = ydl.extract_info(url, download=False)
+                    return ydl.prepare_filename(info)
+            
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(None, _download)
     
     async def _download_with_android_client(self, url: str, max_size_mb: int) -> Optional[str]:
-        """Стратегия 1: Android клиент API (наиболее эффективная)"""
-        opts = self.base_opts.copy()
-        opts.update({
+        """Стратегия 1: Android клиент API с агрессивными настройками"""
+        opts = {
             'format': f'best[height<=720][filesize<{max_size_mb}M]/worst',
+            'outtmpl': str(self.download_dir / '%(title)s_%(id)s.%(ext)s'),
+            'quiet': True,
+            'no_warnings': True,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['android'],
-                    'skip': ['dash'],
+                    'player_client': ['android_music', 'android', 'web'],
+                    'skip': ['dash', 'hls'],
+                    'innertube_host': 'youtubei.googleapis.com',
+                    'innertube_key': None,
+                    'visitor_data': None,
                 }
             },
             'http_headers': {
-                'User-Agent': 'com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip',
-                'X-YouTube-Client-Name': '3',
-                'X-YouTube-Client-Version': '19.09.37',
+                'User-Agent': 'com.google.android.apps.youtube.music/5.16.51 (Linux; U; Android 11) gzip',
+                'X-YouTube-Client-Name': '21',
+                'X-YouTube-Client-Version': '5.16.51',
+                'Content-Type': 'application/json',
             },
-        })
+            'sleep_interval': 1,
+            'socket_timeout': 30,
+        }
         
         def _download():
             with yt_dlp.YoutubeDL(opts) as ydl:
@@ -243,20 +276,28 @@ class YouTubeDownloader(BaseVideoDownloader):
         return await loop.run_in_executor(None, _download)
     
     async def _download_with_ios_client(self, url: str, max_size_mb: int) -> Optional[str]:
-        """Стратегия 3: iOS клиент API"""
-        opts = self.base_opts.copy()
-        opts.update({
+        """Стратегия 3: iOS клиент API с специальными настройками"""
+        opts = {
             'format': f'best[height<=480][filesize<{max_size_mb}M]/worst',
+            'outtmpl': str(self.download_dir / '%(title)s_%(id)s.%(ext)s'),
+            'quiet': True,
+            'no_warnings': True,
             'extractor_args': {
                 'youtube': {
-                    'player_client': ['ios'],
-                    'skip': ['dash'],
+                    'player_client': ['ios', 'mweb'],
+                    'skip': ['dash', 'hls'],
+                    'innertube_host': 'youtubei.googleapis.com',
                 }
             },
             'http_headers': {
-                'User-Agent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X)',
+                'User-Agent': 'com.google.ios.youtube/19.09.3 (iPhone14,3; U; CPU iOS 15_6 like Mac OS X; en_US)',
+                'X-YouTube-Client-Name': '5',
+                'X-YouTube-Client-Version': '19.09.3',
+                'Content-Type': 'application/json',
             },
-        })
+            'sleep_interval': 2,
+            'socket_timeout': 30,
+        }
         
         def _download():
             with yt_dlp.YoutubeDL(opts) as ydl:
@@ -274,15 +315,64 @@ class YouTubeDownloader(BaseVideoDownloader):
             'outtmpl': str(self.download_dir / '%(id)s.%(ext)s'),
             'quiet': True,
             'no_warnings': True,
-            'ignoreerrors': True,
+            'ignoreerrors': False,  # Не игнорируем ошибки
             'no_color': True,
+        }
+        
+        def _download():
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                if info:  # Проверяем, что info не None
+                    ydl.download([url])
+                    filename = ydl.prepare_filename(info)
+                    return filename
+                return None
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _download)
+    
+    async def _download_basic_with_latest_ytdlp(self, url: str, max_size_mb: int) -> Optional[str]:
+        """Стратегия 1: Обновленный yt-dlp с базовыми настройками"""
+        opts = {
+            'format': f'worst[filesize<{max_size_mb}M]/worst',
+            'outtmpl': str(self.download_dir / '%(title)s_%(id)s.%(ext)s'),
+            'quiet': True,
+            'no_warnings': True,
+            'extract_flat': False,
+            'writeinfojson': False,
+            'writethumbnail': False,
+            'writesubtitles': False,
         }
         
         def _download():
             with yt_dlp.YoutubeDL(opts) as ydl:
                 ydl.download([url])
                 info = ydl.extract_info(url, download=False)
-                return ydl.prepare_filename(info)
+                if info:
+                    return ydl.prepare_filename(info)
+                return None
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _download)
+    
+    async def _download_minimal_fallback(self, url: str, max_size_mb: int) -> Optional[str]:
+        """Стратегия 3: Минимальные настройки"""
+        opts = {
+            'format': 'worst',
+            'outtmpl': str(self.download_dir / '%(id)s.%(ext)s'),
+            'quiet': True,
+            'no_warnings': True,
+            'ignoreerrors': False,
+            'extract_flat': False,
+        }
+        
+        def _download():
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                if info:
+                    ydl.download([url])
+                    return ydl.prepare_filename(info)
+                return None
         
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, _download)
