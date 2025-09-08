@@ -390,7 +390,12 @@ class InstagramDownloader(BaseVideoDownloader):
             download_geotags=False,
             download_comments=False,
             save_metadata=False,
-            dirname_pattern=str(self.download_dir)
+            dirname_pattern=str(self.download_dir),
+            # Add better error handling and retry logic
+            max_connection_attempts=3,
+            request_timeout=60,
+            # Reduce rate limiting
+            sleep=True,
         )
     
     async def get_video_info(self, url: str) -> Optional[Dict[str, Any]]:
@@ -419,7 +424,47 @@ class InstagramDownloader(BaseVideoDownloader):
             return None
     
     async def download_video(self, url: str, max_size_mb: int = 50) -> Optional[str]:
-        """Скачать Instagram видео"""
+        """Скачать Instagram видео с фолбэком на yt-dlp"""
+        # Сначала пробуем yt-dlp (часто работает лучше)
+        try:
+            return await self._download_with_ytdlp(url, max_size_mb)
+        except Exception as e:
+            logger.warning(f"yt-dlp failed for Instagram, trying instaloader: {e}")
+            # Фолбэк на оригинальный метод
+            return await self._download_with_instaloader(url, max_size_mb)
+    
+    async def _download_with_ytdlp(self, url: str, max_size_mb: int) -> Optional[str]:
+        """Скачать Instagram через yt-dlp"""
+        opts = {
+            'format': f'best[filesize<{max_size_mb}M]/best',
+            'outtmpl': str(self.download_dir / '%(title)s_%(id)s.%(ext)s'),
+            'quiet': True,
+            'no_warnings': True,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+            },
+        }
+        
+        def _download():
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                ydl.download([url])
+                info = ydl.extract_info(url, download=False)
+                if info:
+                    return ydl.prepare_filename(info)
+                return None
+        
+        loop = asyncio.get_event_loop()
+        filepath = await loop.run_in_executor(None, _download)
+        
+        if filepath and Path(filepath).exists():
+            logger.info(f"Instagram video downloaded via yt-dlp: {filepath}")
+            return filepath
+        return None
+    
+    async def _download_with_instaloader(self, url: str, max_size_mb: int) -> Optional[str]:
+        """Оригинальный метод через instaloader"""
         try:
             shortcode = self._extract_shortcode(url)
             if not shortcode:
@@ -451,11 +496,11 @@ class InstagramDownloader(BaseVideoDownloader):
                     Path(filepath).unlink()  # Удаляем слишком большой файл
                     raise VideoDownloadError(f"File too large: {file_size:.1f}MB > {max_size_mb}MB")
                 
-                logger.info(f"Instagram video downloaded: {filepath}")
+                logger.info(f"Instagram video downloaded via instaloader: {filepath}")
                 return filepath
             
         except Exception as e:
-            logger.error(f"Error downloading Instagram video: {e}")
+            logger.error(f"Error downloading Instagram video with instaloader: {e}")
             raise VideoDownloadError(f"Failed to download Instagram video: {e}")
         
         return None
@@ -486,18 +531,24 @@ class TikTokDownloader(BaseVideoDownloader):
             'outtmpl': str(self.download_dir / '%(title)s_%(id)s.%(ext)s'),
             'quiet': True,
             'no_warnings': True,
-            # Anti-bot detection settings for TikTok
+            # Enhanced anti-detection for TikTok
             'http_headers': {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-us,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
                 'DNT': '1',
                 'Connection': 'keep-alive',
                 'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Fetch-User': '?1',
             },
-            'sleep_interval': 1,
-            'max_sleep_interval': 3,
+            'sleep_interval': 2,
+            'max_sleep_interval': 5,
+            'socket_timeout': 30,
+            'retries': 3,
         }
     
     async def get_video_info(self, url: str) -> Optional[Dict[str, Any]]:
