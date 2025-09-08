@@ -143,6 +143,9 @@ dmypy.json
 # User data (persistent storage)
 data/*.json
 
+# Downloaded videos (temporary)
+downloads/
+
 # Python cache
 __pycache__/
 *.py[cod]

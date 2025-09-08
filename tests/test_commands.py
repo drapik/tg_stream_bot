@@ -21,10 +21,15 @@ class TestBasicCommands:
         
         # Проверяем ответ
         expected_text = (
-            "Привет! Я бот для скачивания медиа из социальных сетей.\n"
+            "👋 Привет! Я бот для скачивания видео с популярных платформ!\n\n"
+            "🎬 **Поддерживаемые платформы:**\n"
+            "▫️ YouTube\n▫️ Instagram\n▫️ TikTok\n\n"
+            "💡 **Как использовать:**\n"
+            "• Отправьте мне ссылку на видео\n"
+            "• Или используйте команду `/download <ссылка>`\n\n"
             "Используй /help чтобы увидеть все доступные команды."
         )
-        mock_admin_message.answer.assert_called_once_with(expected_text)
+        mock_admin_message.answer.assert_called_once_with(expected_text, parse_mode="Markdown")
 
     @pytest.mark.asyncio
     async def test_version_command_returns_correct_version(self, mock_admin_message):
