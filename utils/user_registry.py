@@ -5,9 +5,14 @@ import config
 def update_user_registry(user: types.User):
     """Обновить реестр пользователей информацией о пользователе"""
     if user and user.id:
-        config.USER_REGISTRY[user.id] = {
-            'username': user.username
-        }
+        # Проверяем, изменилось ли что-то
+        current_info = config.USER_REGISTRY.get(user.id)
+        new_info = {'username': user.username}
+        
+        if current_info != new_info:
+            config.USER_REGISTRY[user.id] = new_info
+            # Автоматически сохраняем в файл
+            config.save_user_registry(config.USER_REGISTRY)
 
 
 def format_user_info(user_id: int, role: str) -> str:

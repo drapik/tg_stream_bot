@@ -1,4 +1,6 @@
 import os
+import json
+from pathlib import Path
 from dotenv import load_dotenv
 
 # Загружаем переменные окружения из .env файла
@@ -32,7 +34,33 @@ ROLE_HIERARCHY = {
 }
 
 # Реестр пользователей для хранения информации о никнеймах
-USER_REGISTRY = {}
+USER_REGISTRY_FILE = "data/user_registry.json"
+
+def load_user_registry():
+    """Загрузить реестр пользователей из файла"""
+    try:
+        Path(USER_REGISTRY_FILE).parent.mkdir(parents=True, exist_ok=True)
+        if Path(USER_REGISTRY_FILE).exists():
+            with open(USER_REGISTRY_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                # Конвертируем строковые ключи обратно в int
+                return {int(k): v for k, v in data.items()}
+    except Exception as e:
+        print(f"Ошибка при загрузке реестра пользователей: {e}")
+    return {}
+
+def save_user_registry(registry):
+    """Сохранить реестр пользователей в файл"""
+    try:
+        Path(USER_REGISTRY_FILE).parent.mkdir(parents=True, exist_ok=True)
+        with open(USER_REGISTRY_FILE, 'w', encoding='utf-8') as f:
+            # Конвертируем int ключи в строки для JSON
+            json_data = {str(k): v for k, v in registry.items()}
+            json.dump(json_data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Ошибка при сохранении реестра пользователей: {e}")
+
+USER_REGISTRY = load_user_registry()
 
 # Логирование
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

@@ -164,6 +164,39 @@ class TestAdminCommands:
             assert "никнейм отсутствует" in result
 
     @pytest.mark.asyncio
+    async def test_user_registry_persistence(self, mock_admin_message):
+        """Тест: проверка сохранения и загрузки пользователей"""
+        from utils.user_registry import update_user_registry
+        from config import save_user_registry, load_user_registry
+        import tempfile
+        import os
+        
+        # Создаем временный файл для тестирования
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp_file:
+            tmp_path = tmp_file.name
+        
+        try:
+            # Патчим путь к файлу
+            with patch("config.USER_REGISTRY_FILE", tmp_path):
+                # Создаем тестовые данные
+                test_registry = {123456: {"username": "test_user"}}
+                
+                # Сохраняем данные
+                save_user_registry(test_registry)
+                
+                # Загружаем данные обратно
+                loaded_registry = load_user_registry()
+                
+                # Проверяем, что данные сохранились и загрузились правильно
+                assert loaded_registry == test_registry
+                assert 123456 in loaded_registry
+                assert loaded_registry[123456]["username"] == "test_user"
+        finally:
+            # Удаляем временный файл
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+
+    @pytest.mark.asyncio
     async def test_admin_commands_require_admin_role(self, mock_user_message):
         """Тест: админские команды требуют роль админа"""
         from commands.admin import users_handler
