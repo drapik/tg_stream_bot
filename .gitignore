@@ -222,3 +222,31 @@ Thumbs.db
 *.key
 logs/
 temp/
+
+# FFmpeg installation and downloads (added for FFmpeg integration)
+ffmpeg-8.0-essentials_build/
+ffmpeg*.zip
+ffmpeg*.tar.*
+
+# Test files and directories (temporary test scripts)
+test_*.py
+*_test/
+integration_example.py
+enhanced_test/
+ffmpeg_working_test/
+final_test/
+simple_test/
+test_downloads/
+working_test/
+
+# Video files (temporary downloads)
+*.mp4
+*.webm
+*.mkv
+*.flv
+*.avi
+*.mov
+
+# Log files (if created during testing)
+*.log
+test_*.log

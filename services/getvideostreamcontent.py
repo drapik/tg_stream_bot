@@ -3,6 +3,7 @@ import asyncio
 import os
 import re
 import tempfile
+import subprocess
 import aiofiles
 from pathlib import Path
 from typing import Dict, Any, Optional, Union
@@ -66,6 +67,19 @@ class BaseVideoDownloader:
     def __init__(self, download_dir: str = "downloads"):
         self.download_dir = Path(download_dir)
         self.download_dir.mkdir(exist_ok=True)
+        
+        # FFmpeg path setup
+        self.ffmpeg_path = self._get_ffmpeg_path()
+    
+    def _get_ffmpeg_path(self) -> str:
+        """Get FFmpeg executable path"""
+        # Check if we have local FFmpeg installation
+        local_ffmpeg = Path("ffmpeg-8.0-essentials_build/bin/ffmpeg.exe")
+        if local_ffmpeg.exists():
+            return str(local_ffmpeg.resolve())
+        
+        # Fallback to system FFmpeg
+        return "ffmpeg"
     
     async def get_video_info(self, url: str) -> Optional[Dict[str, Any]]:
         """Получить информацию о видео"""
@@ -80,6 +94,58 @@ class BaseVideoDownloader:
         # Очистка названия от недопустимых символов
         safe_title = re.sub(r'[<>:"/\\|?*]', '', title)[:50]
         return f"{safe_title}_{video_id}.{ext}"
+    
+    async def _post_process_with_ffmpeg(self, input_path: str, max_size_mb: int) -> Optional[str]:
+        """Post-process video with FFmpeg for better compatibility"""
+        if not Path(input_path).exists():
+            return None
+            
+        try:
+            output_path = input_path.replace('.webm', '_processed.mp4').replace('.mkv', '_processed.mp4')
+            if output_path == input_path:
+                output_path = input_path.replace('.mp4', '_processed.mp4')
+            
+            # FFmpeg command for conversion and optimization
+            cmd = [
+                self.ffmpeg_path,
+                '-i', input_path,
+                '-c:v', 'libx264',
+                '-c:a', 'aac',
+                '-movflags', '+faststart',
+                '-y',  # Overwrite output file
+                output_path
+            ]
+            
+            def _run_ffmpeg():
+                try:
+                    result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=300)
+                    return output_path
+                except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+                    logger.error(f"FFmpeg processing failed: {e}")
+                    return input_path  # Return original file if FFmpeg fails
+            
+            loop = asyncio.get_event_loop()
+            processed_path = await loop.run_in_executor(None, _run_ffmpeg)
+            
+            # Check if processing was successful and file size is acceptable
+            if Path(processed_path).exists():
+                file_size = Path(processed_path).stat().st_size / (1024 * 1024)
+                if file_size <= max_size_mb:
+                    # Remove original file if processing was successful
+                    if processed_path != input_path and Path(input_path).exists():
+                        Path(input_path).unlink()
+                    return processed_path
+                else:
+                    # If processed file is too large, remove it and return original
+                    if processed_path != input_path:
+                        Path(processed_path).unlink()
+                    return input_path
+            
+            return input_path
+            
+        except Exception as e:
+            logger.error(f"FFmpeg post-processing error: {e}")
+            return input_path  # Return original file on any error
 
 
 class YouTubeDownloader(BaseVideoDownloader):
@@ -149,8 +215,9 @@ class YouTubeDownloader(BaseVideoDownloader):
     
     async def download_video(self, url: str, max_size_mb: int = 50) -> Optional[str]:
         """Скачать YouTube видео с реалистичными ожиданиями"""
-        # Простая но эффективная стратегия
+        # Простая но эффективная стратегия с FFmpeg поддержкой
         strategies = [
+            self._download_with_ffmpeg_ytdlp,
             self._download_basic_with_latest_ytdlp,
             self._download_with_android_client,
             self._download_minimal_fallback
@@ -162,7 +229,10 @@ class YouTubeDownloader(BaseVideoDownloader):
                 filepath = await strategy(url, max_size_mb)
                 if filepath and Path(filepath).exists():
                     logger.info(f"YouTube video downloaded successfully with {strategy.__name__}: {filepath}")
-                    return filepath
+                    
+                    # Apply FFmpeg post-processing for better compatibility
+                    processed_filepath = await self._post_process_with_ffmpeg(filepath, max_size_mb)
+                    return processed_filepath
             except Exception as e:
                 logger.warning(f"Strategy {i} ({strategy.__name__}) failed: {e}")
                 if i == len(strategies):  # Last strategy failed
@@ -174,6 +244,36 @@ class YouTubeDownloader(BaseVideoDownloader):
                 continue
         
         return None
+    
+    async def _download_with_ffmpeg_ytdlp(self, url: str, max_size_mb: int) -> Optional[str]:
+        """Новая стратегия: Использование yt-dlp с FFmpeg обработкой"""
+        opts = {
+            'format': f'worst[filesize<{max_size_mb}M]/worst',
+            'outtmpl': str(self.download_dir / '%(id)s.%(ext)s'),
+            'quiet': True,
+            'no_warnings': True,
+            'ffmpeg_location': self.ffmpeg_path,
+            'postprocessors': [{
+                'key': 'FFmpegVideoConvertor',
+                'preferedformat': 'mp4',
+            }],
+            'extract_flat': False,
+            'writeinfojson': False,
+        }
+        
+        def _download():
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                ydl.download([url])
+                info = ydl.extract_info(url, download=False)
+                if info:
+                    # Find the downloaded file
+                    for file_path in self.download_dir.glob(f"*{info.get('id', '')}*"):
+                        if file_path.is_file() and file_path.suffix in ['.mp4', '.webm', '.mkv']:
+                            return str(file_path)
+                return None
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _download)
     
     async def _download_with_basic_settings(self, url: str, max_size_mb: int) -> Optional[str]:
         """Первая стратегия: базовые настройки"""
