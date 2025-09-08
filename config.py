@@ -31,5 +31,8 @@ ROLE_HIERARCHY = {
     "user": ["user"]
 }
 
+# Реестр пользователей для хранения информации о никнеймах
+USER_REGISTRY = {}
+
 # Логирование
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")

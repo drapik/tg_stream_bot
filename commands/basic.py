@@ -2,11 +2,15 @@ from aiogram import Dispatcher, types
 from aiogram.filters import Command
 from decorators import role_required
 from config import VERSION, WHITELIST
+from utils import update_user_registry
 
 
 @role_required("user")
 async def start_handler(message: types.Message):
     """Обработчик команды /start"""
+    # Обновляем реестр информацией о пользователе
+    update_user_registry(message.from_user)
+    
     await message.answer(
         "Привет! Я бот для скачивания медиа из социальных сетей.\n"
         "Используй /help чтобы увидеть все доступные команды."
@@ -16,12 +20,18 @@ async def start_handler(message: types.Message):
 @role_required("user")
 async def version_handler(message: types.Message):
     """Обработчик команды /version"""
+    # Обновляем реестр информацией о пользователе
+    update_user_registry(message.from_user)
+    
     await message.answer(f"Версия бота: {VERSION}")
 
 
 @role_required("user")
 async def help_handler(message: types.Message):
     """Обработчик команды /help"""
+    # Обновляем реестр информацией о пользователе
+    update_user_registry(message.from_user)
+    
     user_id = message.from_user.id
     user_role = WHITELIST.get(user_id, "user")
     

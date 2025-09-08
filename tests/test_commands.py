@@ -129,7 +129,8 @@ class TestAdminCommands:
         with patch("decorators.auth.WHITELIST", test_whitelist):
             with patch("decorators.auth.ROLE_HIERARCHY", {"user": ["user"], "admin": ["admin", "user"]}):
                 with patch("commands.admin.WHITELIST", test_whitelist):
-                    await users_handler(mock_admin_message)
+                    with patch("config.USER_REGISTRY", {}):
+                        await users_handler(mock_admin_message)
         
         # Проверяем что ответ содержит информацию о пользователях
         call_args = mock_admin_message.answer.call_args
@@ -137,8 +138,30 @@ class TestAdminCommands:
         
         response_text = call_args[0][0]
         assert "👥 Пользователи в whitelist:" in response_text
-        assert "ID: `314009331` - Роль: admin" in response_text
-        assert "ID: `987654321` - Роль: user" in response_text
+        assert "ID: `314009331` - Роль: admin (никнейм отсутствует)" in response_text
+        assert "ID: `987654321` - Роль: user (никнейм отсутствует)" in response_text
+
+    @pytest.mark.asyncio
+    async def test_users_command_with_usernames(self, mock_admin_message):
+        """Тест: команда /users с именами пользователей"""
+        from commands.admin import users_handler
+        from utils.user_registry import format_user_info
+        
+        # Мокаем WHITELIST с пользователями
+        test_whitelist = {
+            314009331: "admin",
+            987654321: "user"
+        }
+        
+        # Проверяем форматирование напрямую
+        with patch("config.USER_REGISTRY", {314009331: {"username": "admin_user"}}):
+            result = format_user_info(314009331, "admin")
+            assert "@admin_user" in result
+        
+        # И тест без username
+        with patch("config.USER_REGISTRY", {}):
+            result = format_user_info(314009331, "admin")
+            assert "никнейм отсутствует" in result
 
     @pytest.mark.asyncio
     async def test_admin_commands_require_admin_role(self, mock_user_message):
