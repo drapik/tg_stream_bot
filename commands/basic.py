@@ -1,19 +1,35 @@
 from aiogram import Dispatcher, types
-from aiogram import Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import FSInputFile
 from decorators import role_required
 from config import VERSION, WHITELIST
 from utils import update_user_registry
-from services.getvideostreamcontent import GetVideoStreamContentService, VideoDownloadError, PlatformDetector
+from services.pure_ffmpeg_service import PureFFmpegVideoService
 from pathlib import Path
 import asyncio
 import re
 from loguru import logger
 
 
-# Инициализируем сервис загрузки видео
-video_service = GetVideoStreamContentService()
+# Initialize pure FFmpeg video service - much more reliable!
+video_service = PureFFmpegVideoService()
+
+
+class PlatformDetector:
+    """Simple platform detector for pure FFmpeg service"""
+    
+    @staticmethod
+    def detect_platform(url: str) -> str:
+        """Detect platform from URL"""
+        url_lower = url.lower()
+        if 'youtube.com' in url_lower or 'youtu.be' in url_lower:
+            return 'youtube'
+        elif 'instagram.com' in url_lower:
+            return 'instagram'
+        elif 'tiktok.com' in url_lower:
+            return 'tiktok'
+        else:
+            return None
 
 
 def extract_urls_from_text(text: str) -> list[str]:
@@ -98,49 +114,42 @@ async def message_handler(message: types.Message):
 
 
 async def process_video_download(message: types.Message, url: str):
-    """Молчаливое скачивание и отправка видео"""
+    """Молчаливое скачивание и отправка видео с помощью pure FFmpeg"""
     platform = PlatformDetector.detect_platform(url)
     if not platform:
         return  # Молча игнорируем неподдерживаемые ссылки
     
     try:
-        # Скачиваем видео молча
+        # Скачиваем видео с помощью pure FFmpeg - надежно и быстро!
+        logger.info(f"Downloading {platform} video with pure FFmpeg: {url}")
         filepath = await video_service.download_video(url, max_size_mb=50)
         
         if filepath and Path(filepath).exists():
             file_size = Path(filepath).stat().st_size / (1024 * 1024)  # MB
+            logger.info(f"Pure FFmpeg download successful: {file_size:.2f} MB")
             
             # Проверяем размер файла
             if file_size > 50:
                 Path(filepath).unlink()  # Удаляем слишком большой файл
+                logger.warning(f"File too large ({file_size:.2f} MB), removed")
                 return
             
             # Отправляем видео без лишних сообщений
             video_file = FSInputFile(filepath)
             await message.answer_video(video=video_file)
+            logger.info(f"Video sent successfully to user {message.from_user.id}")
             
             # Удаляем скачанный файл
             Path(filepath).unlink()
-    
-    except VideoDownloadError as e:
-        # Обрабатываем специфические ошибки скачивания
-        error_msg = str(e).lower()
-        
-        if "youtube bot detection" in error_msg or "sign in" in error_msg or "bot" in error_msg:
-            # YouTube блокирует ботов - молча игнорируем
-            logger.warning(f"YouTube bot detection triggered for {url}: {e}")
-        elif "too large" in error_msg or "file size" in error_msg:
-            # Файл слишком большой - молча игнорируем
-            logger.warning(f"Video file too large for {url}: {e}")
+            logger.info("Downloaded file cleaned up")
         else:
-            # Другие ошибки - логируем и молча игнорируем
-            logger.error(f"Video download error for {url}: {e}")
-        
-        return  # Всегда молча игнорируем ошибки
+            # Молча игнорируем неудачные загрузки
+            logger.warning(f"Pure FFmpeg download failed for {url} - no file created")
+            return
     
     except Exception as e:
-        # Молча игнорируем любые ошибки
-        logger.error(f"Silent video download error for {url}: {e}")
+        # Молча игнорируем любые ошибки - полностью молчаливый режим
+        logger.error(f"Pure FFmpeg video download error for {url}: {e}")
         return
 
 

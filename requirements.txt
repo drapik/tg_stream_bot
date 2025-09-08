@@ -6,6 +6,5 @@ loguru==0.7.2
 pytest==7.4.3
 pytest-asyncio==0.21.1
 pytest-mock==3.12.0
-yt-dlp>=2025.9.5
-instaloader==4.10.3
-ffmpeg-python>=0.2.0
+# Pure FFmpeg approach - no need for yt-dlp or instaloader anymore!
+# FFmpeg handles everything directly
