@@ -145,10 +145,10 @@ class YouTubeDownloader(BaseVideoDownloader):
     
     async def download_video(self, url: str, max_size_mb: int = 50) -> Optional[str]:
         """Скачать YouTube видео"""
+        # Simplified strategy: try basic approach, then minimal
         strategies = [
             self._download_with_basic_settings,
-            self._download_with_mobile_headers,
-            self._download_with_minimal_settings
+            self._download_with_minimal_settings,
         ]
         
         for i, strategy in enumerate(strategies, 1):
@@ -161,7 +161,12 @@ class YouTubeDownloader(BaseVideoDownloader):
             except Exception as e:
                 logger.warning(f"Strategy {i} failed: {e}")
                 if i == len(strategies):  # Last strategy failed
-                    raise VideoDownloadError(f"All download strategies failed. Last error: {e}")
+                    # Check if it's a bot detection error
+                    error_msg = str(e).lower()
+                    if "sign in" in error_msg or "bot" in error_msg:
+                        raise VideoDownloadError(f"YouTube bot detection: {e}")
+                    else:
+                        raise VideoDownloadError(f"All strategies failed: {e}")
                 continue
         
         return None

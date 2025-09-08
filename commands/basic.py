@@ -126,7 +126,7 @@ async def process_video_download(message: types.Message, url: str):
         # Обрабатываем специфические ошибки скачивания
         error_msg = str(e).lower()
         
-        if "sign in" in error_msg or "bot" in error_msg:
+        if "youtube bot detection" in error_msg or "sign in" in error_msg or "bot" in error_msg:
             # YouTube блокирует ботов - молча игнорируем
             logger.warning(f"YouTube bot detection triggered for {url}: {e}")
         elif "too large" in error_msg or "file size" in error_msg:
