@@ -22,7 +22,7 @@ class TestBasicCommands:
         # Проверяем ответ
         expected_text = (
             "Привет! Я бот для скачивания медиа из социальных сетей.\n"
-            "Используй /version чтобы узнать версию бота."
+            "Используй /help чтобы увидеть все доступные команды."
         )
         mock_admin_message.answer.assert_called_once_with(expected_text)
 
@@ -37,6 +37,56 @@ class TestBasicCommands:
                 await version_handler(mock_admin_message)
         
         mock_admin_message.answer.assert_called_once_with(f"Версия бота: {VERSION}")
+
+    @pytest.mark.asyncio
+    async def test_help_command_for_admin_user(self, mock_admin_message):
+        """Тест: команда /help для админа показывает все команды"""
+        from commands.basic import help_handler
+        
+        # Мокаем WHITELIST для авторизации админа
+        with patch("decorators.auth.WHITELIST", {314009331: "admin"}):
+            with patch("decorators.auth.ROLE_HIERARCHY", {"user": ["user"], "admin": ["admin", "user"]}):
+                with patch("commands.basic.WHITELIST", {314009331: "admin"}):
+                    await help_handler(mock_admin_message)
+        
+        # Проверяем что ответ содержит админские команды
+        call_args = mock_admin_message.answer.call_args
+        assert call_args[1]["parse_mode"] == "Markdown"
+        
+        response_text = call_args[0][0]
+        assert "🤖 **Доступные команды:**" in response_text
+        assert "📋 **Основные команды:**" in response_text
+        assert "/start" in response_text
+        assert "/help" in response_text
+        assert "/version" in response_text
+        assert "🛡️ **Админские команды:**" in response_text
+        assert "/users" in response_text
+        assert "Ваша роль: **admin**" in response_text
+
+    @pytest.mark.asyncio
+    async def test_help_command_for_regular_user(self, mock_user_message):
+        """Тест: команда /help для обычного пользователя показывает только базовые команды"""
+        from commands.basic import help_handler
+        
+        # Мокаем WHITELIST для авторизации пользователя
+        with patch("decorators.auth.WHITELIST", {987654321: "user"}):
+            with patch("decorators.auth.ROLE_HIERARCHY", {"user": ["user"], "admin": ["admin", "user"]}):
+                with patch("commands.basic.WHITELIST", {987654321: "user"}):
+                    await help_handler(mock_user_message)
+        
+        # Проверяем что ответ НЕ содержит админские команды
+        call_args = mock_user_message.answer.call_args
+        assert call_args[1]["parse_mode"] == "Markdown"
+        
+        response_text = call_args[0][0]
+        assert "🤖 **Доступные команды:**" in response_text
+        assert "📋 **Основные команды:**" in response_text
+        assert "/start" in response_text
+        assert "/help" in response_text
+        assert "/version" in response_text
+        assert "🛡️ **Админские команды:**" not in response_text
+        assert "/users" not in response_text
+        assert "Ваша роль: **user**" in response_text
 
     @pytest.mark.asyncio
     async def test_commands_require_authorization(self, mock_unauthorized_message):

@@ -22,7 +22,7 @@ WHITELIST = {
     # user_id: role
     314009331: "admin",  # для тестов
     987654321: "user",    # для тестов
-    314009331: "admin"
+    491956927: "admin"
 }
 
 ROLE_HIERARCHY = {
