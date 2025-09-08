@@ -122,10 +122,26 @@ async def process_video_download(message: types.Message, url: str):
             # Удаляем скачанный файл
             Path(filepath).unlink()
     
+    except VideoDownloadError as e:
+        # Обрабатываем специфические ошибки скачивания
+        error_msg = str(e).lower()
+        
+        if "sign in" in error_msg or "bot" in error_msg:
+            # YouTube блокирует ботов - молча игнорируем
+            logger.warning(f"YouTube bot detection triggered for {url}: {e}")
+        elif "too large" in error_msg or "file size" in error_msg:
+            # Файл слишком большой - молча игнорируем
+            logger.warning(f"Video file too large for {url}: {e}")
+        else:
+            # Другие ошибки - логируем и молча игнорируем
+            logger.error(f"Video download error for {url}: {e}")
+        
+        return  # Всегда молча игнорируем ошибки
+    
     except Exception as e:
-        # Молча игнорируем ошибки
+        # Молча игнорируем любые ошибки
         logger.error(f"Silent video download error for {url}: {e}")
-        pass
+        return
 
 
 def register_basic_commands(dp: Dispatcher):

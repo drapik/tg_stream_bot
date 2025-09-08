@@ -1,4 +1,5 @@
 import asyncio
+import asyncio
 import os
 import re
 import tempfile
@@ -91,13 +92,40 @@ class YouTubeDownloader(BaseVideoDownloader):
             'outtmpl': str(self.download_dir / '%(title)s_%(id)s.%(ext)s'),
             'quiet': True,
             'no_warnings': True,
+            # Anti-bot detection settings
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+            },
+            # Additional anti-detection settings
+            'extractor_args': {
+                'youtube': {
+                    'skip': ['dash', 'hls']  # Skip DASH and HLS formats that might be more restricted
+                }
+            },
+            # Sleep between requests to avoid rate limiting
+            'sleep_interval': 1,
+            'max_sleep_interval': 5,
+            # Try to use the best available format without forcing specific quality
+            'format_sort': ['res:720', 'ext:mp4:m4a'],
         }
     
     async def get_video_info(self, url: str) -> Optional[Dict[str, Any]]:
         """Получить информацию о YouTube видео"""
         try:
             def _extract_info():
-                with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+                # Use the same improved settings for info extraction
+                info_opts = {
+                    'quiet': True,
+                    'http_headers': self.ydl_opts['http_headers'],
+                    'sleep_interval': 1,
+                }
+                with yt_dlp.YoutubeDL(info_opts) as ydl:
                     return ydl.extract_info(url, download=False)
             
             loop = asyncio.get_event_loop()
@@ -117,31 +145,99 @@ class YouTubeDownloader(BaseVideoDownloader):
     
     async def download_video(self, url: str, max_size_mb: int = 50) -> Optional[str]:
         """Скачать YouTube видео"""
-        try:
-            # Настройки для скачивания
-            opts = self.ydl_opts.copy()
-            opts['format'] = f'best[height<=720][filesize<{max_size_mb}M]/best[filesize<{max_size_mb}M]'
-            
-            def _download():
-                with yt_dlp.YoutubeDL(opts) as ydl:
-                    ydl.download([url])
-                    # Получаем информацию о скачанном файле
-                    info = ydl.extract_info(url, download=False)
-                    filename = ydl.prepare_filename(info)
-                    return filename
-            
-            loop = asyncio.get_event_loop()
-            filepath = await loop.run_in_executor(None, _download)
-            
-            if filepath and Path(filepath).exists():
-                logger.info(f"YouTube video downloaded: {filepath}")
-                return filepath
-            
-        except Exception as e:
-            logger.error(f"Error downloading YouTube video: {e}")
-            raise VideoDownloadError(f"Failed to download YouTube video: {e}")
+        strategies = [
+            self._download_with_basic_settings,
+            self._download_with_mobile_headers,
+            self._download_with_minimal_settings
+        ]
+        
+        for i, strategy in enumerate(strategies, 1):
+            try:
+                logger.info(f"Trying YouTube download strategy {i}/{len(strategies)}")
+                filepath = await strategy(url, max_size_mb)
+                if filepath and Path(filepath).exists():
+                    logger.info(f"YouTube video downloaded successfully with strategy {i}: {filepath}")
+                    return filepath
+            except Exception as e:
+                logger.warning(f"Strategy {i} failed: {e}")
+                if i == len(strategies):  # Last strategy failed
+                    raise VideoDownloadError(f"All download strategies failed. Last error: {e}")
+                continue
         
         return None
+    
+    async def _download_with_basic_settings(self, url: str, max_size_mb: int) -> Optional[str]:
+        """Первая стратегия: базовые настройки"""
+        opts = self.ydl_opts.copy()
+        opts['format'] = f'best[height<=720][filesize<{max_size_mb}M]/best[filesize<{max_size_mb}M]'
+        
+        def _download():
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                ydl.download([url])
+                info = ydl.extract_info(url, download=False)
+                filename = ydl.prepare_filename(info)
+                return filename
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _download)
+    
+    async def _download_with_mobile_headers(self, url: str, max_size_mb: int) -> Optional[str]:
+        """Вторая стратегия: мобильные заголовки"""
+        opts = {
+            'format': f'worst[height<=360][filesize<{max_size_mb}M]/worst[filesize<{max_size_mb}M]',
+            'outtmpl': str(self.download_dir / '%(title)s_%(id)s.%(ext)s'),
+            'quiet': True,
+            'no_warnings': True,
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.2 Mobile/15E148 Safari/604.1',
+                'Accept': '*/*',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Sec-Fetch-Dest': 'empty',
+                'Sec-Fetch-Mode': 'cors',
+                'Sec-Fetch-Site': 'same-origin',
+            },
+            'sleep_interval': 3,
+            'max_sleep_interval': 8,
+        }
+        
+        def _download():
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                ydl.download([url])
+                info = ydl.extract_info(url, download=False)
+                filename = ydl.prepare_filename(info)
+                return filename
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _download)
+    
+    async def _download_with_minimal_settings(self, url: str, max_size_mb: int) -> Optional[str]:
+        """Третья стратегия: минимальные настройки"""
+        opts = {
+            'format': 'worst',  # Просто самое низкое качество
+            'outtmpl': str(self.download_dir / '%(id)s.%(ext)s'),  # Простое имя файла
+            'quiet': True,
+            'no_warnings': True,
+            'extractor_args': {
+                'youtube': {
+                    'skip': ['dash', 'hls'],
+                    'player_skip': ['configs', 'webpage'],
+                    'comment_sort': ['top'],
+                }
+            },
+        }
+        
+        def _download():
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                ydl.download([url])
+                info = ydl.extract_info(url, download=False)
+                filename = ydl.prepare_filename(info)
+                return filename
+        
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, _download)
 
 
 class InstagramDownloader(BaseVideoDownloader):
@@ -252,13 +348,30 @@ class TikTokDownloader(BaseVideoDownloader):
             'outtmpl': str(self.download_dir / '%(title)s_%(id)s.%(ext)s'),
             'quiet': True,
             'no_warnings': True,
+            # Anti-bot detection settings for TikTok
+            'http_headers': {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-us,en;q=0.5',
+                'Accept-Encoding': 'gzip, deflate',
+                'DNT': '1',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+            },
+            'sleep_interval': 1,
+            'max_sleep_interval': 3,
         }
     
     async def get_video_info(self, url: str) -> Optional[Dict[str, Any]]:
         """Получить информацию о TikTok видео"""
         try:
             def _extract_info():
-                with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+                info_opts = {
+                    'quiet': True,
+                    'http_headers': self.ydl_opts['http_headers'],
+                    'sleep_interval': 1,
+                }
+                with yt_dlp.YoutubeDL(info_opts) as ydl:
                     return ydl.extract_info(url, download=False)
             
             loop = asyncio.get_event_loop()
