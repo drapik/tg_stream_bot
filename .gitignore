@@ -250,3 +250,7 @@ working_test/
 # Log files (if created during testing)
 *.log
 test_*.log
+
+# Documentation files (internal/temporary)
+YOUTUBE_BOT_DETECTION_SOLUTION.md
+PURE_FFMPEG_INTEGRATION.md

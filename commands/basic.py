@@ -114,19 +114,21 @@ async def message_handler(message: types.Message):
 
 
 async def process_video_download(message: types.Message, url: str):
-    """Молчаливое скачивание и отправка видео с помощью pure FFmpeg"""
+    """Молчаливое скачивание и отправка видео с yt-dlp + FFmpeg
+    Обрабатывает YouTube bot detection молча (это ожидаемое поведение)
+    """
     platform = PlatformDetector.detect_platform(url)
     if not platform:
         return  # Молча игнорируем неподдерживаемые ссылки
     
     try:
-        # Скачиваем видео с помощью pure FFmpeg - надежно и быстро!
-        logger.info(f"Downloading {platform} video with pure FFmpeg: {url}")
+        # Скачиваем видео с yt-dlp + FFmpeg - надежно!
+        logger.info(f"Downloading {platform} video with yt-dlp + FFmpeg: {url}")
         filepath = await video_service.download_video(url, max_size_mb=50)
         
         if filepath and Path(filepath).exists():
             file_size = Path(filepath).stat().st_size / (1024 * 1024)  # MB
-            logger.info(f"Pure FFmpeg download successful: {file_size:.2f} MB")
+            logger.info(f"Video download successful: {file_size:.2f} MB")
             
             # Проверяем размер файла
             if file_size > 50:
@@ -143,13 +145,17 @@ async def process_video_download(message: types.Message, url: str):
             Path(filepath).unlink()
             logger.info("Downloaded file cleaned up")
         else:
-            # Молча игнорируем неудачные загрузки
-            logger.warning(f"Pure FFmpeg download failed for {url} - no file created")
+            # Молча игнорируем неудачные загрузки (обычно YouTube bot detection)
+            logger.warning(f"Video download failed for {url} - likely YouTube bot detection (expected)")
             return
     
     except Exception as e:
         # Молча игнорируем любые ошибки - полностью молчаливый режим
-        logger.error(f"Pure FFmpeg video download error for {url}: {e}")
+        error_msg = str(e).lower()
+        if "sign in" in error_msg or "bot" in error_msg:
+            logger.warning(f"YouTube bot detection for {url} (expected behavior)")
+        else:
+            logger.error(f"Video download error for {url}: {e}")
         return
 
 
