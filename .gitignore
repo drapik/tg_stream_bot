@@ -259,6 +259,9 @@ test_enhanced_service.py
 test_bot_integration.py
 test_simple_download.py
 test_working_ffmpeg.py
+test_immediate.py
+test_working_v2.py
+test_bot_comprehensive.py
 
 # Alternative service implementations (development artifacts)
 services/ffmpeg_video_service.py
@@ -267,6 +270,8 @@ services/pure_ffmpeg_service.py
 services/reliable_video_service.py
 services/working_video_service.py
 services/final_working_service.py
+services/working_video_service_v2.py
+services/production_video_service.py
 
 # Video files (temporary downloads)
 *.mp4
@@ -283,3 +288,4 @@ test_*.log
 # Documentation files (internal/temporary)
 YOUTUBE_BOT_DETECTION_SOLUTION.md
 PURE_FFMPEG_INTEGRATION.md
+SOLUTION_EXPLANATION.md
