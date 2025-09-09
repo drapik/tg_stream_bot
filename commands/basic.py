@@ -4,15 +4,15 @@ from aiogram.types import FSInputFile
 from decorators import role_required
 from config import VERSION, WHITELIST
 from utils import update_user_registry
-from services.working_final_service import WorkingFinalService
+from services.bypass_service import BypassService
 from pathlib import Path
 import asyncio
 import re
 from loguru import logger
 
 
-# Initialize working final service - accepts platform reality but still tries
-video_service = WorkingFinalService()
+# Initialize bypass service - tries alternative methods to bypass restrictions
+video_service = BypassService()
 
 
 class PlatformDetector:
@@ -122,8 +122,8 @@ async def process_video_download(message: types.Message, url: str):
         return  # Молча игнорируем неподдерживаемые ссылки
     
     try:
-        # Скачиваем видео с working final сервисом - принимает реальность платформ
-        logger.info(f"Downloading {platform} video with working final service: {url}")
+        # Скачиваем видео с bypass сервисом - пробует альтернативные методы обхода
+        logger.info(f"Downloading {platform} video with bypass service: {url}")
         filepath = await video_service.download_video(url, max_size_mb=50)
         
         if filepath and Path(filepath).exists():
