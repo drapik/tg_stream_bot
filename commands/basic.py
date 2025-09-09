@@ -4,15 +4,15 @@ from aiogram.types import FSInputFile
 from decorators import role_required
 from config import VERSION, WHITELIST
 from utils import update_user_registry
-from services.pure_ffmpeg_service import PureFFmpegVideoService
+from services.final_working_service import FinalWorkingVideoService
 from pathlib import Path
 import asyncio
 import re
 from loguru import logger
 
 
-# Initialize pure FFmpeg video service - much more reliable!
-video_service = PureFFmpegVideoService()
+# Initialize final working video service - fixes FFmpeg path issue!
+video_service = FinalWorkingVideoService()
 
 
 class PlatformDetector:
@@ -122,8 +122,8 @@ async def process_video_download(message: types.Message, url: str):
         return  # Молча игнорируем неподдерживаемые ссылки
     
     try:
-        # Скачиваем видео с yt-dlp + FFmpeg - надежно!
-        logger.info(f"Downloading {platform} video with yt-dlp + FFmpeg: {url}")
+        # Скачиваем видео с финальным сервисом - исправляет путь FFmpeg!
+        logger.info(f"Downloading {platform} video with final working service: {url}")
         filepath = await video_service.download_video(url, max_size_mb=50)
         
         if filepath and Path(filepath).exists():

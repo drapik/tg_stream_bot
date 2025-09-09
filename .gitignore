@@ -238,6 +238,35 @@ final_test/
 simple_test/
 test_downloads/
 working_test/
+reliable_test/
+hybrid_test/
+pure_ffmpeg_test/
+debug_test/
+debug_service_test/
+
+# Debug and diagnostic scripts (temporary development files)
+debug_service.py
+diagnose_issue.py
+test_hybrid_approach.py
+test_pure_ffmpeg.py
+test_minimal_ffmpeg.py
+test_ffmpeg_service.py
+test_enhanced_youtube.py
+test_working_service.py
+test_reliable_service.py
+test_improved_service.py
+test_enhanced_service.py
+test_bot_integration.py
+test_simple_download.py
+test_working_ffmpeg.py
+
+# Alternative service implementations (development artifacts)
+services/ffmpeg_video_service.py
+services/ffmpeg_enhanced_service.py
+services/pure_ffmpeg_service.py
+services/reliable_video_service.py
+services/working_video_service.py
+services/final_working_service.py
 
 # Video files (temporary downloads)
 *.mp4
