@@ -243,6 +243,11 @@ hybrid_test/
 pure_ffmpeg_test/
 debug_test/
 debug_service_test/
+bot_test_downloads/
+test_service_downloads/
+test_working_downloads/
+ultimate_test/
+temp_cookies/
 
 # Debug and diagnostic scripts (temporary development files)
 debug_service.py
@@ -262,6 +267,7 @@ test_working_ffmpeg.py
 test_immediate.py
 test_working_v2.py
 test_bot_comprehensive.py
+test_ultimate.py
 
 # Alternative service implementations (development artifacts)
 services/ffmpeg_video_service.py
@@ -272,6 +278,8 @@ services/working_video_service.py
 services/final_working_service.py
 services/working_video_service_v2.py
 services/production_video_service.py
+services/ultimate_video_service.py
+services/working_final_service.py
 
 # Video files (temporary downloads)
 *.mp4
@@ -289,3 +297,4 @@ test_*.log
 YOUTUBE_BOT_DETECTION_SOLUTION.md
 PURE_FFMPEG_INTEGRATION.md
 SOLUTION_EXPLANATION.md
+FINAL_REALITY_REPORT.md

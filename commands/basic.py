@@ -4,15 +4,15 @@ from aiogram.types import FSInputFile
 from decorators import role_required
 from config import VERSION, WHITELIST
 from utils import update_user_registry
-from services.production_video_service import ProductionVideoService
+from services.working_final_service import WorkingFinalService
 from pathlib import Path
 import asyncio
 import re
 from loguru import logger
 
 
-# Initialize production video service - handles all platforms with proper error handling
-video_service = ProductionVideoService()
+# Initialize working final service - accepts platform reality but still tries
+video_service = WorkingFinalService()
 
 
 class PlatformDetector:
@@ -122,8 +122,8 @@ async def process_video_download(message: types.Message, url: str):
         return  # Молча игнорируем неподдерживаемые ссылки
     
     try:
-        # Скачиваем видео с production сервисом - обрабатывает все платформы!
-        logger.info(f"Downloading {platform} video with production service: {url}")
+        # Скачиваем видео с working final сервисом - принимает реальность платформ
+        logger.info(f"Downloading {platform} video with working final service: {url}")
         filepath = await video_service.download_video(url, max_size_mb=50)
         
         if filepath and Path(filepath).exists():
