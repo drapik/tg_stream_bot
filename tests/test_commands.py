@@ -12,46 +12,50 @@ class TestBasicCommands:
     @pytest.mark.asyncio
     async def test_start_command_response(self, mock_admin_message):
         """Тест: команда /start возвращает корректный ответ"""
-        from commands.basic import start_handler
+        # Import from the ultimate commands since we're now using that
+        from commands.ultimate import start_handler
         
         # Мокаем WHITELIST для авторизации админа
         with patch("decorators.auth.WHITELIST", {314009331: "admin"}):
             with patch("decorators.auth.ROLE_HIERARCHY", {"user": ["user"], "admin": ["admin", "user"]}):
                 await start_handler(mock_admin_message)
         
-        # Проверяем ответ
+        # Проверяем ответ (updated for the ultimate implementation)
         expected_text = (
-            "👋 Привет! Я бот для скачивания видео с популярных платформ!\n\n"
-            "🎬 **Поддерживаемые платформы:**\n"
-            "▫️ YouTube\n▫️ Instagram\n▫️ TikTok\n\n"
-            "💡 **Как использовать:**\n"
-            "• Отправьте мне ссылку на видео\n"
-            "• Или используйте команду `/download <ссылка>`\n\n"
-            "Используй /help чтобы увидеть все доступные команды."
+            "👋 Hello! I automatically download videos from YouTube, Instagram, and TikTok.\n\n"
+            "💡 Just send me a video link!\n\n"
+            "📋 Supported platforms:\n"
+            "• YouTube (youtube.com, youtu.be)\n"
+            "• Instagram (instagram.com)\n"
+            "• TikTok (tiktok.com)\n\n"
+            "🔧 Commands:\n"
+            "/start - Show this message\n"
+            "/version - Show bot version\n"
+            "/help - Show detailed help"
         )
         mock_admin_message.answer.assert_called_once_with(expected_text, parse_mode="Markdown")
 
     @pytest.mark.asyncio
     async def test_version_command_returns_correct_version(self, mock_admin_message):
         """Тест: команда /version возвращает правильную версию"""
-        from commands.basic import version_handler
+        from commands.ultimate import version_handler  # Updated import
         
         # Мокаем WHITELIST для авторизации админа
         with patch("decorators.auth.WHITELIST", {314009331: "admin"}):
             with patch("decorators.auth.ROLE_HIERARCHY", {"user": ["user"], "admin": ["admin", "user"]}):
                 await version_handler(mock_admin_message)
         
-        mock_admin_message.answer.assert_called_once_with(f"Версия бота: {VERSION}")
+        mock_admin_message.answer.assert_called_once_with(f"Bot version: {VERSION}")
 
     @pytest.mark.asyncio
     async def test_help_command_for_admin_user(self, mock_admin_message):
         """Тест: команда /help для админа показывает все команды"""
-        from commands.basic import help_handler
+        from commands.ultimate import help_handler  # Updated import
         
         # Мокаем WHITELIST для авторизации админа
         with patch("decorators.auth.WHITELIST", {314009331: "admin"}):
             with patch("decorators.auth.ROLE_HIERARCHY", {"user": ["user"], "admin": ["admin", "user"]}):
-                with patch("commands.basic.WHITELIST", {314009331: "admin"}):
+                with patch("commands.ultimate.WHITELIST", {314009331: "admin"}):
                     await help_handler(mock_admin_message)
         
         # Проверяем что ответ содержит админские команды
@@ -59,24 +63,24 @@ class TestBasicCommands:
         assert call_args[1]["parse_mode"] == "Markdown"
         
         response_text = call_args[0][0]
-        assert "🤖 **Доступные команды:**" in response_text
-        assert "📋 **Основные команды:**" in response_text
+        assert "🤖 **Available Commands:**" in response_text
+        assert "📋 **Basic Commands:**" in response_text
         assert "/start" in response_text
         assert "/help" in response_text
         assert "/version" in response_text
-        assert "🛡️ **Админские команды:**" in response_text
+        assert "🛡️ **Admin Commands:**" in response_text
         assert "/users" in response_text
-        assert "Ваша роль: **admin**" in response_text
+        assert "Your role: **admin**" in response_text
 
     @pytest.mark.asyncio
     async def test_help_command_for_regular_user(self, mock_user_message):
         """Тест: команда /help для обычного пользователя показывает только базовые команды"""
-        from commands.basic import help_handler
+        from commands.ultimate import help_handler  # Updated import
         
         # Мокаем WHITELIST для авторизации пользователя
         with patch("decorators.auth.WHITELIST", {987654321: "user"}):
             with patch("decorators.auth.ROLE_HIERARCHY", {"user": ["user"], "admin": ["admin", "user"]}):
-                with patch("commands.basic.WHITELIST", {987654321: "user"}):
+                with patch("commands.ultimate.WHITELIST", {987654321: "user"}):
                     await help_handler(mock_user_message)
         
         # Проверяем что ответ НЕ содержит админские команды
@@ -84,19 +88,19 @@ class TestBasicCommands:
         assert call_args[1]["parse_mode"] == "Markdown"
         
         response_text = call_args[0][0]
-        assert "🤖 **Доступные команды:**" in response_text
-        assert "📋 **Основные команды:**" in response_text
+        assert "🤖 **Available Commands:**" in response_text
+        assert "📋 **Basic Commands:**" in response_text
         assert "/start" in response_text
         assert "/help" in response_text
         assert "/version" in response_text
-        assert "🛡️ **Админские команды:**" not in response_text
+        assert "🛡️ **Admin Commands:**" not in response_text
         assert "/users" not in response_text
-        assert "Ваша роль: **user**" in response_text
+        assert "Your role: **user**" in response_text
 
     @pytest.mark.asyncio
     async def test_commands_require_authorization(self, mock_unauthorized_message):
         """Тест: команды требуют авторизации"""
-        from commands.basic import start_handler
+        from commands.ultimate import start_handler  # Updated import
         
         # Проверяем что неавторизованный пользователь получает отказ
         await start_handler(mock_unauthorized_message)
