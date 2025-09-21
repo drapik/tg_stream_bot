@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 .venv/
 .cursor/
+.qoder/
 
 # C extensions
 *.so
@@ -136,7 +137,78 @@ dmypy.json
 *.swp
 *.swo
 
-# OS specific files
+# Environment variables
+.env
+
+# User data (persistent storage)
+data/*.json
+
+# Downloaded videos (temporary)
+downloads/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -150,3 +222,144 @@ Thumbs.db
 *.key
 logs/
 temp/
+
+# FFmpeg installation and downloads (added for FFmpeg integration)
+ffmpeg-8.0-essentials_build/
+ffmpeg*.zip
+ffmpeg*.tar.*
+
+# Test files and directories (temporary test scripts)
+test_*.py
+*_test/
+integration_example.py
+enhanced_test/
+ffmpeg_working_test/
+final_test/
+simple_test/
+test_downloads/
+working_test/
+reliable_test/
+hybrid_test/
+pure_ffmpeg_test/
+debug_test/
+debug_service_test/
+bot_test_downloads/
+test_service_downloads/
+test_working_downloads/
+ultimate_test/
+temp_cookies/
+
+# Debug and diagnostic scripts (temporary development files)
+debug_service.py
+diagnose_issue.py
+test_hybrid_approach.py
+test_pure_ffmpeg.py
+test_minimal_ffmpeg.py
+test_ffmpeg_service.py
+test_enhanced_youtube.py
+test_working_service.py
+test_reliable_service.py
+test_improved_service.py
+test_enhanced_service.py
+test_bot_integration.py
+test_simple_download.py
+test_working_ffmpeg.py
+test_immediate.py
+test_working_v2.py
+test_bot_comprehensive.py
+test_ultimate.py
+quick_test_bypass.py
+
+# Alternative service implementations (development artifacts) - REMOVED as they are no longer in project
+# services/ffmpeg_video_service.py
+# services/ffmpeg_enhanced_service.py
+# services/pure_ffmpeg_service.py
+# services/reliable_video_service.py
+# services/working_video_service.py
+# services/final_working_service.py
+# services/working_video_service_v2.py
+# services/production_video_service.py
+# services/working_final_service.py
+# services/bypass_service.py
+
+# Video files (temporary downloads)
+*.mp4
+*.webm
+*.mkv
+*.flv
+*.avi
+*.mov
+
+# Log files (if created during testing)
+*.log
+test_*.log
+
+# Documentation files (internal/temporary)
+YOUTUBE_BOT_DETECTION_SOLUTION.md
+PURE_FFMPEG_INTEGRATION.md
+SOLUTION_EXPLANATION.md
+FINAL_REALITY_REPORT.md
+AUTONOMOUS_YOUTUBE_FIX.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Browser cookies for video download (NEVER commit these!)
+cookies.txt
+
+# Downloaded content
+downloads/
+
+# FFmpeg binaries (if included)
+ffmpeg*/
+
+# Additional test and documentation files
+test_implementation.py
+test_platform_behavior.py
+test_timeout_fixes.py
+test_different_videos.py
+fix_cookie_issue.py
+demo_automatic_bot.py
+COOKIE_FIX_COMPLETE.md
+IMPLEMENTATION_COMPLETE.md
+YOUTUBE_FIXED.md
+ISSUE_RESOLVED_FINAL.md

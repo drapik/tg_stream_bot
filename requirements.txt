@@ -6,3 +6,6 @@ loguru==0.7.2
 pytest==7.4.3
 pytest-asyncio==0.21.1
 pytest-mock==3.12.0
+# yt-dlp for URL resolution, FFmpeg for downloading and processing
+yt-dlp>=2025.9.5
+instaloader
