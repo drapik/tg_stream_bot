@@ -157,30 +157,71 @@ async def process_video_download(message: types.Message, url: str):
                 logger.error(f"Error during cleanup: {cleanup_error}")
                 
         else:
-            # Send user-friendly error message
-            await message.answer(
-                "❌ Download failed. This video may be unavailable or the link might be invalid.\n\n"
-                "💡 Tips:\n"
-                "• Make sure the video is public\n"
-                "• Try a different video\n"
-                "• Some videos may be restricted",
-                parse_mode="Markdown"
-            )
+            # Determine the type of error for better user feedback
+            platform = url.lower()
+            if 'youtube.com' in platform or 'youtu.be' in platform:
+                # YouTube-specific message
+                await message.answer(
+                    "❌ YouTube download failed. This video may require authentication.\n\n"
+                    "💡 **Solutions:**\n"
+                    "• Some YouTube videos are restricted\n"
+                    "• Try a different YouTube video\n"
+                    "• For better success rates, the bot admin can set up authentication\n\n"
+                    "🎵 **Alternative:** Try Instagram or TikTok videos - they work better!",
+                    parse_mode="Markdown"
+                )
+            else:
+                # Generic message for other platforms
+                await message.answer(
+                    "❌ Download failed. This video may be unavailable or the link might be invalid.\n\n"
+                    "💡 **Tips:**\n"
+                    "• Make sure the video is public\n"
+                    "• Try a different video\n"
+                    "• Some videos may be restricted",
+                    parse_mode="Markdown"
+                )
             logger.warning(f"Video download failed for URL: {url}")
             
     except Exception as e:
         logger.error(f"Error processing video download: {e}")
         
-        # Send user-friendly error message
-        await message.answer(
-            "❌ An error occurred while downloading the video.\n\n"
-            "💡 This might be due to:\n"
-            "• Video restrictions or bot detection\n"
-            "• Network issues\n"
-            "• Video format not supported\n\n"
-            "Please try again with a different video.",
-            parse_mode="Markdown"
-        )
+        # Determine error type for user feedback
+        error_msg = str(e).lower()
+        if "sign in" in error_msg or "bot" in error_msg:
+            # YouTube bot detection
+            await message.answer(
+                "🔒 **YouTube Authentication Required**\n\n"
+                "This video requires authentication to download. "
+                "YouTube has detected automated access and requires verification.\n\n"
+                "💡 **What you can do:**\n"
+                "• Try a different YouTube video\n"
+                "• Try Instagram or TikTok videos instead\n"
+                "• Contact the bot admin for authentication setup",
+                parse_mode="Markdown"
+            )
+        elif "cookie" in error_msg:
+            # Cookie-related error
+            await message.answer(
+                "🍪 **Authentication Issue**\n\n"
+                "There was an issue with authentication cookies. "
+                "This is common with YouTube videos.\n\n"
+                "💡 **Alternatives:**\n"
+                "• Try Instagram or TikTok videos\n"
+                "• Try a different YouTube video\n"
+                "• Some videos work better than others",
+                parse_mode="Markdown"
+            )
+        else:
+            # Generic error
+            await message.answer(
+                "❌ An error occurred while downloading the video.\n\n"
+                "💡 This might be due to:\n"
+                "• Video restrictions or platform limitations\n"
+                "• Network issues\n"
+                "• Video format not supported\n\n"
+                "Please try again with a different video.",
+                parse_mode="Markdown"
+            )
         
         # Clean up any partial files
         try:
