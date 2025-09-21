@@ -270,18 +270,17 @@ test_bot_comprehensive.py
 test_ultimate.py
 quick_test_bypass.py
 
-# Alternative service implementations (development artifacts)
-services/ffmpeg_video_service.py
-services/ffmpeg_enhanced_service.py
-services/pure_ffmpeg_service.py
-services/reliable_video_service.py
-services/working_video_service.py
-services/final_working_service.py
-services/working_video_service_v2.py
-services/production_video_service.py
-services/ultimate_video_service.py
-services/working_final_service.py
-services/bypass_service.py
+# Alternative service implementations (development artifacts) - REMOVED as they are no longer in project
+# services/ffmpeg_video_service.py
+# services/ffmpeg_enhanced_service.py
+# services/pure_ffmpeg_service.py
+# services/reliable_video_service.py
+# services/working_video_service.py
+# services/final_working_service.py
+# services/working_video_service_v2.py
+# services/production_video_service.py
+# services/working_final_service.py
+# services/bypass_service.py
 
 # Video files (temporary downloads)
 *.mp4
@@ -351,3 +350,15 @@ downloads/
 
 # FFmpeg binaries (if included)
 ffmpeg*/
+
+# Additional test and documentation files
+test_implementation.py
+test_platform_behavior.py
+test_timeout_fixes.py
+test_different_videos.py
+fix_cookie_issue.py
+demo_automatic_bot.py
+COOKIE_FIX_COMPLETE.md
+IMPLEMENTATION_COMPLETE.md
+YOUTUBE_FIXED.md
+ISSUE_RESOLVED_FINAL.md

@@ -1,10 +1,11 @@
 import asyncio
+import asyncio
 import signal
 import sys
 from loguru import logger
 from aiogram import Bot, Dispatcher
 from config import BOT_TOKEN, VERSION
-from commands import register_basic_commands, register_admin_commands
+from commands import register_admin_commands
 from commands.ultimate import register_ultimate_commands
 
 # Настройка логирования
@@ -15,8 +16,7 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 # Регистрация команд
-# register_basic_commands(dp)  # Old implementation
-register_ultimate_commands(dp)  # New implementation with your tested function
+register_ultimate_commands(dp)  # Main implementation
 register_admin_commands(dp)
 
 

@@ -1,3 +1,3 @@
-from .getvideostreamcontent import GetVideoStreamContentService
+from .ultimate_video_service import ultimate_video_service
 
-__all__ = ['GetVideoStreamContentService']
+__all__ = ['ultimate_video_service']
